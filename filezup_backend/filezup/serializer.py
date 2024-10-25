@@ -1,3 +1,4 @@
+from .models import FileUpload
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate, get_user_model
@@ -52,7 +53,6 @@ class UserLoginSerializer(serializers.ModelSerializer):
         if user is None:
             raise serializers.ValidationError(_('Invalid username or password.'))
 
-        # Set is_active to True
         user.is_active = True
         user.save()
         attrs['user'] = user  
@@ -63,14 +63,21 @@ class UserLogoutSerializer(serializers.Serializer):
     user_name = serializers.CharField(required=True)
 
     def validate_user_name(self, value):
-        user = User.objects.filter(user_name=value).first()
-        if not user:
+        if not User.objects.filter(user_name=value).exists():
             raise serializers.ValidationError(_('User does not exist.'))
         return value
+    
+class FileUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FileUpload
+        fields = ['id', 'file', 'uploaded_at', 'user', 'file_size', 'file_type']
 
-    def update(self, instance, validated_data):
-        instance.is_active = False
-        instance.save()
-        return instance
-    
-    
+    def create(self, validated_data):
+        file = validated_data.get('file')
+        file_size = file.size
+        file_type = file.content_type  
+        validated_data['file_size'] = file_size
+        validated_data['file_type'] = file_type
+        file_upload_instance = FileUpload.objects.create(**validated_data)
+
+        return file_upload_instance

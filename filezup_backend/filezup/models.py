@@ -1,10 +1,9 @@
 from django.db import models
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
-# Create your models here.
 class CustomUserManager(BaseUserManager):
-    """Custom user manager to handle user creation."""
     def create_user(self, user_name, email, full_name, password=None, **extra_fields):
         if not email:
             raise ValueError(_("The Email field is required"))
@@ -30,7 +29,6 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(user_name, email, full_name, password, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    """Custom user model."""
     user_name   = models.CharField(max_length=20, unique=True)
     full_name   = models.CharField(max_length=200)
     email       = models.EmailField(unique=True)
@@ -49,3 +47,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.user_name
+
+class FileUpload(models.Model):
+    file           = models.FileField(upload_to='uploads/')
+    uploaded_at    = models.DateTimeField(auto_now_add=True)
+    user           = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    file_size      = models.PositiveIntegerField(null=True, blank=True)
+    file_type      = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('file')
+        verbose_name_plural = _('files')
+        
+    def __str__(self):
+        return self.file.name
