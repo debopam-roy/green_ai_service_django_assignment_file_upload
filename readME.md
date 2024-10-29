@@ -97,10 +97,3 @@ The Django REST API provides endpoints for user authentication, file upload, fil
 - **Frontend**: React, Redux Toolkit, Axios, Bootstrap
 - **Backend**: Django, Django REST Framework, SQLite
 
-
-## Contributing
-
-1. Fork the repository.
-2. Create a new branch with descriptive name.
-3. Commit and push your changes.
-4. Open a pull request for review.
