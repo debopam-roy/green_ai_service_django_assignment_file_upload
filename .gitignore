@@ -18,6 +18,7 @@ media/
 
 # VSCode settings
 .vscode/
+.venv/
 
 # Miscellaneous
 *.log

@@ -1,18 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from .models import FileUpload
+from .models import File
 User = get_user_model()
 
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'full_name', 'user_name', 'email', 'is_active', 'is_staff')
-    search_fields = ('user_name', 'email', 'full_name')  
-    ordering = ('full_name', 'user_name')  
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('id', 'fullname', 'username', 'email', 'is_active', 'is_staff', 'created_at', 'updated_at')
+    search_fields = ('username', 'email', 'fullname')  
+    ordering = ('fullname', 'username')  
 
-admin.site.register(User, CustomUserAdmin)
+admin.site.register(User, UserAdmin)
 
-class FilesUploaded(admin.ModelAdmin):
-    list_display = ('id', 'file', 'user', 'file_type', 'file_size', 'uploaded_at')
-    search_fields = ('file', 'file_type')  
-    ordering = ('file', 'file_type')  
+class FileListAdmin(admin.ModelAdmin):
+    list_display = ('id', 'owner', 'file_name', 'file_type', 'file_size')
+    search_fields = ('file',)
 
-admin.site.register(FileUpload, FilesUploaded)
+admin.site.register(File, FileListAdmin)
