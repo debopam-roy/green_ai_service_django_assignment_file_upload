@@ -23,7 +23,6 @@ export const authenticationSlice = createSlice({
             state.token = token;
             state.is_authenticated = true;
 
-            // Save the updated state to localStorage
             localStorage.setItem('userAuthentication', JSON.stringify(state));
         },
         removeUser: (state) => {
@@ -38,6 +37,5 @@ export const authenticationSlice = createSlice({
     },
 });
 
-// Export actions and reducer
 export const { addUser, removeUser } = authenticationSlice.actions;
 export default authenticationSlice.reducer;

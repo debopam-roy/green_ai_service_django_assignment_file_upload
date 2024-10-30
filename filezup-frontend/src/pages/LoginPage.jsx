@@ -24,10 +24,10 @@ const LoginPage = () => {
         if (response.status === 200) {
             const { user_id, username, fullname, email, token } = response.data;
             dispatch(addUser({ user_id, username, fullname, email, token }));
-            toast.success('Registration successful');
+            toast.success('Login successful');
             navigate('/');
         } else {
-            toast.success(`Oops! Error occured.${response.status}`);
+            toast.error('Unexpected response status:', response.status);
         }
     };
 

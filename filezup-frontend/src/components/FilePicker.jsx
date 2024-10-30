@@ -24,13 +24,13 @@ const FilePicker = ({ handleFileChange, handleUpload, uploadingFiles }) => {
 
 const styles = {
     container: {
-        border: '1px dashed ', // Dotted border style
+        border: '1px dashed ',
         borderRadius: '5px',
         padding: '20px',
         margin: '20px 0',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center', // Center align items
+        alignItems: 'center',
         justifyContent: 'center',
         transition: 'box-shadow 0.3s',
     },
@@ -38,9 +38,9 @@ const styles = {
         borderRadius: '5px',
         border: '1px dotted',
         padding: '10px',
-        width: '100%', // Ensure full width for the input
+        width: '100%',
         marginBottom: '15px',
-        outline: 'none', // Remove outline for focus
+        outline: 'none',
         transition: 'border-color 0.3s',
     },
     uploadButton: {

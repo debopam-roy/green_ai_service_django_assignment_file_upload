@@ -62,7 +62,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 _(f"Password must be between {min_length} and {max_length} characters.")
             )
-        # Enforces complexity requirements (e.g., symbols, digits) via Django's built-in validator
+        
         validate_password(value)
         return value
 
@@ -75,7 +75,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             is_staff=validated_data.get('is_staff', False),  
             is_active=validated_data.get('is_active', True),  
         )
-        # Securely sets the password
+        
         user.set_password(validated_data['password'])
         user.save()
         return user
@@ -93,14 +93,14 @@ class UserLoginSerializer(serializers.Serializer):
         username = attrs.get('username')
         password = attrs.get('password')
 
-        # Authenticate user
+        
         user = authenticate(username=username, password=password)
 
-        # Check if user exists
+        
         if user is None:
             raise serializers.ValidationError("Invalid username or password.")
 
-        # Check if user is active
+        
         if not user.is_active:
             raise serializers.ValidationError("This user account is inactive.")
 
@@ -129,7 +129,7 @@ class FileListSerializer(serializers.ModelSerializer):
 class FileUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        fields = ['file_name', 'file_size', 'file_type']  # Removed 'owner' from fields
+        fields = ['file_name', 'file_size', 'file_type']  
 
     def generate_random_string(self, length=5):
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
@@ -143,9 +143,9 @@ class FileUploadSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        request = self.context.get('request')  # Get request to access user
-        validated_data['owner'] = request.user  # Set the owner to the current user
-        file = validated_data.get('file_name')  # Use 'file_name' as per the model
+        request = self.context.get('request')  
+        validated_data['owner'] = request.user  
+        file = validated_data.get('file_name')  
         validated_data['file_size'] = file.size
         validated_data['file_type'] = file.content_type
         file_upload_instance = File.objects.create(**validated_data)

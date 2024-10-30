@@ -3,11 +3,10 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RegisterForm from '../components/RegisterForm.jsx';
 import axios from 'axios';
-import { useDispatch } from 'react-redux';
+import { toast } from 'react-hot-toast';
 
 const RegisterPage = () => {
     const navigate = useNavigate();
-    const dispatch = useDispatch();
     const handleRegisterPageSubmit = async (formData) => {
         const registerFormData = {
             fullname: formData.fullname,
@@ -24,20 +23,17 @@ const RegisterPage = () => {
                 }
             );
             if (response.status === 201) {
-                const { user_id, username, fullname, email, token } =
-                    response.data;
-                dispatch(
-                    addUser({ user_id, username, fullname, email, token })
+                toast.success(
+                    'Registration successful. Please login to your account.'
                 );
-                //TODO: Proper toast message
-                navigate('/');
+                navigate('/login');
             } else {
                 //TODO: Proper toast message
-                console.error('Unexpected response status:', response.status);
+                toast.error('Unexpected response status:', response.status);
             }
         } catch (error) {
             if (error.response) {
-                console.error('Response data:', error.response.data); // Inspect the error message here
+                toast.error('Response data:', error.response.data);
             }
         }
     };

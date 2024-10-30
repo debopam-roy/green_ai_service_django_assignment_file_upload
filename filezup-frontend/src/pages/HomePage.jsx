@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
 import UploadedFileList from '../components/UploadedFileList.jsx';
 import FilePicker from '../components/FilePicker.jsx';
+import { toast } from 'react-hot-toast';
 
 const HomePage = () => {
     const dispatch = useDispatch();
@@ -30,12 +31,13 @@ const HomePage = () => {
             );
             if (response.status === 200) {
                 dispatch(removeUser());
+                toast.success('Logout successful');
                 navigate('/login');
             } else {
-                console.error('Unexpected response status:', response.status);
+                toast.error('Unexpected response status:', response.status);
             }
         } catch (error) {
-            console.error('Logout failed:', error);
+            toast.error('Logout failed:', error);
         }
     };
 
@@ -49,7 +51,6 @@ const HomePage = () => {
         uploadingFiles.forEach((file) => {
             formData.append('file', file);
         });
-
         try {
             const response = await axios.post(
                 'http://127.0.0.1:8000/api/file/upload/',
@@ -62,13 +63,13 @@ const HomePage = () => {
                     withCredentials: true,
                 }
             );
-            if (response.status === 200) {
-                fetchFiles();
+            if (response.status === 201) {
+                fetchFiles(userData.token);
                 setUploadingFiles([]);
-                //when calling upto this line, I want the list to be automatically parsed again so that the list gets updated in the ui automatically
+                toast.success('Upload successful');
             }
         } catch (error) {
-            console.error('File upload failed:', error);
+            toast.error('File upload failed:', error);
         }
     };
 
@@ -83,11 +84,9 @@ const HomePage = () => {
                     withCredentials: true,
                 }
             );
-            console.log(response.data);
             setFiles(response.data);
-            //when calling upto this line, I want the list to be automatically parsed again so that the list gets updated in the ui automatically
         } catch (error) {
-            console.error('Failed to fetch files:', error);
+            toast.error('Failed to fetch files:', error);
         }
     };
 
@@ -103,11 +102,11 @@ const HomePage = () => {
                 }
             );
             if (response.status === 204) {
-                fetchFiles();
-                //when calling upto this line, I want the list to be automatically parsed again so that the list gets updated in the ui automatically
+                fetchFiles(userData.token);
+                toast.success('Deletion successful');
             }
         } catch (error) {
-            console.error('File deletion failed:', error);
+            toast.error('File deletion failed:', error);
         }
     };
 
@@ -125,28 +124,43 @@ const HomePage = () => {
             );
 
             if (response.status === 200) {
-                // Get the original filename from response headers
-                const originalFilename = response.headers['content-disposition']
-                    ? response.headers['content-disposition']
-                          .split('filename=')[1]
-                          .replace(/"/g, '')
-                    : `downloaded_file_${fileId}`; // Fallback if no filename is found
-
-                const url = window.URL.createObjectURL(
-                    new Blob([response.data])
+                const originalFilename = getOriginalFilename(
+                    response.headers['content-disposition'],
+                    fileId
                 );
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', originalFilename); // Use the original filename
-                document.body.appendChild(link);
-                link.click();
-                link.remove(); // Clean up the link after triggering the download
-                fetchFiles(); // Refresh the file list after download
+                downloadFile(response.data, originalFilename);
+                toast.success('Downloaded file');
+                fetchFiles(userData.token);
             }
         } catch (error) {
-            console.error('File download failed:', error);
-            alert('Failed to download the file. Please try again.'); // User-friendly error message
+            toast.error(`File download failed: ${error.message}`);
         }
+    };
+
+    const getOriginalFilename = (contentDisposition, fileId) => {
+        let originalFilename = `downloaded_file_${fileId}.jpg`;
+
+        if (contentDisposition && contentDisposition.includes('filename=')) {
+            const filenameMatch = contentDisposition.match(
+                /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+            );
+            if (filenameMatch && filenameMatch[1]) {
+                originalFilename = filenameMatch[1].replace(/['"]/g, '');
+                originalFilename = originalFilename.split('/').pop();
+            }
+        }
+
+        return originalFilename;
+    };
+
+    const downloadFile = (data, filename) => {
+        const url = window.URL.createObjectURL(new Blob([data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     };
 
     useEffect(() => {
@@ -169,7 +183,6 @@ const HomePage = () => {
         } else {
             setGreeting('Good evening');
         }
-        //when calling upto this line, I want the list to be automatically parsed again so that the list gets updated in the ui automatically
     }, [navigate]);
 
     return (
@@ -198,7 +211,7 @@ const HomePage = () => {
 
             <div className="row mt-4">
                 <div
-                    className="col-lg-6 col-md-12 mb-4 d-flex flex-column align-items-center justify-content-center mx-1" // Added mx-1 for horizontal margin
+                    className="col-lg-6 col-md-12 mb-4 d-flex flex-column align-items-center justify-content-center mx-1"
                     style={{
                         backgroundColor: '#fff',
                         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
@@ -270,7 +283,7 @@ const HomePage = () => {
                 </div>
 
                 <div
-                    className="col-lg-6 col-md-12 mb-4 d-flex flex-column align-items-center justify-content-center mx-1" // Added mx-1 for horizontal margin
+                    className="col-lg-6 col-md-12 mb-4 d-flex flex-column align-items-center justify-content-center mx-1"
                     style={{
                         backgroundColor: '#fff',
                         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',

@@ -11,14 +11,14 @@ class UserManager(BaseUserManager):
         if not username:
             raise ValueError(_("The Username field is required"))
 
-        email = self.normalize_email(email)  # Normalizes the email to lowercase
+        email = self.normalize_email(email)  
         user = self.model(username=username, email=email, fullname=fullname, **extra_fields)
-        user.set_password(password)  # Sets the hashed password
-        user.save(using=self._db)  # Saves the user object to the database
+        user.set_password(password)  
+        user.save(using=self._db)  
         return user
 
     def create_superuser(self, username, email, fullname, password=None, **extra_fields):
-        # Superuser should have admin permissions
+        
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -35,13 +35,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=20, unique=True)
     fullname = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
-    is_staff = models.BooleanField(default=False)  # Allows access to the admin site
-    is_active = models.BooleanField(default=True)  # User account is active
-    created_at = models.DateTimeField(auto_now_add=True)  # Automatically set to now on creation
-    updated_at = models.DateTimeField(auto_now=True)  # Automatically set to now when updated
+    is_staff = models.BooleanField(default=False)  
+    is_active = models.BooleanField(default=True)  
+    created_at = models.DateTimeField(auto_now_add=True)  
+    updated_at = models.DateTimeField(auto_now=True)  
 
-    USERNAME_FIELD = 'username'  # Defines username as the primary identifier
-    REQUIRED_FIELDS = ['email', 'fullname']  # Email and fullname required on user creation
+    USERNAME_FIELD = 'username'  
+    REQUIRED_FIELDS = ['email', 'fullname']  
 
     objects = UserManager()
 

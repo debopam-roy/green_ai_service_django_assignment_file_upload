@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
+from filezup_backend import settings
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserLogoutSerializer, FileListSerializer, FileUploadSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import MultiPartParser, FormParser 
@@ -23,20 +25,20 @@ def getUserDetails(message, user, status):
         "token": str(access_token)
     }, status=status)
 
-    # Set cookies with access and refresh tokens
+    
     response.set_cookie(
         key='access_token',
-        value=str(access_token),  # Serialize the token
+        value=str(access_token),  
         httponly=True,
         samesite='Lax',
-        secure=True  # Ensure this flag is set for production (HTTPS)
+        secure=True  
     )
     response.set_cookie(
         key='refresh_token',
-        value=str(refresh_token),  # Serialize the token
+        value=str(refresh_token),  
         httponly=True,
         samesite='Lax',
-        secure=True  # Ensure this flag is set for production (HTTPS)
+        secure=True  
     )
     
     return response
@@ -103,7 +105,7 @@ class FileUploadView(APIView):
             if serializer.is_valid():
                 file_upload_instance = serializer.save() 
                 responses.append({
-                    'filename': file_upload_instance.file_name.name,  # Access the correct attribute
+                    'filename': file_upload_instance.file_name.name,  
                     'status': 'uploaded successfully',
                     'uploaded_at': file_upload_instance.uploaded_at
                 })
@@ -134,14 +136,31 @@ class FileDeleteView(APIView):
             return Response({"message": "Deletion successful"}, status=status.HTTP_204_NO_CONTENT) 
         except File.DoesNotExist:
             raise Http404("File not found or you do not have permission to delete this file.")
+            
 
 class FileDownloadView(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self, request, pk):
-        try:
-            file_instance = File.objects.get(pk=pk, owner=request.user)
-            response = FileResponse(file_instance.file_name.open('rb'), as_attachment=True)
-            return response
-        except File.DoesNotExist:
-            raise Http404('File Not Found')
 
+    def get(self, request, pk):
+        file_instance = self.get_file_instance(pk, request.user)
+        file_path = self.get_file_path(file_instance)
+
+        if os.path.exists(file_path):
+            return self.create_file_response(file_path, file_instance.file_type)
+        
+        raise Http404("File not found")
+
+    def get_file_instance(self, pk, user):
+        try:
+            return File.objects.get(pk=pk, owner=user)
+        except File.DoesNotExist:
+            raise Http404("File not found")
+
+    def get_file_path(self, file_instance):
+        return os.path.join(settings.MEDIA_ROOT, 'uploads', file_instance.file_name.name.split('/')[-1])
+
+    def create_file_response(self, file_path, file_type):
+        response = FileResponse(open(file_path, 'rb'), as_attachment=True)
+        response['Content-Type'] = file_type  
+        response['Content-Disposition'] = f'attachment; filename="{file_path}"'
+        return response
