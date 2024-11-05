@@ -17,23 +17,23 @@ const RegisterPage = () => {
         try {
             const response = await axios.post(
                 `http://127.0.0.1:8000/api/register/`,
-                registerFormData,
-                {
-                    withCredentials: true,
-                }
+                registerFormData
             );
+
             if (response.status === 201) {
                 toast.success(
                     'Registration successful. Please login to your account.'
                 );
                 navigate('/login');
             } else {
-                //TODO: Proper toast message
                 toast.error('Unexpected response status:', response.status);
             }
         } catch (error) {
             if (error.response) {
-                toast.error('Response data:', error.response.data);
+                toast.error(
+                    'Error occured. Response data:',
+                    error.response.data
+                );
             }
         }
     };

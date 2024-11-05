@@ -27,7 +27,8 @@ const preloadedState = loadStateFromLocalStorage() || {
         fullname: null,
         username: null,
         email: null,
-        token: null,
+        access_token: null,
+        refresh_token: null,
         is_authenticated: false,
     },
 };

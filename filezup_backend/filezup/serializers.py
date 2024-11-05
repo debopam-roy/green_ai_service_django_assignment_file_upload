@@ -1,13 +1,17 @@
+import os
 import random
 import string
-from django.shortcuts import get_object_or_404
+from django.http import Http404
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import EmailValidator
 from django.contrib.auth import authenticate
+
+from filezup_backend import settings
 from .models import File
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 User = get_user_model()
 
@@ -27,7 +31,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         }
 
     def validate_fullname(self, value):
-        """Ensure fullname is between 3 and 100 characters."""
+        
         min_length = 3
         max_length = 100
         if not (min_length <= len(value) <= max_length):
@@ -37,13 +41,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        """Check if email is unique and valid."""
+
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(_("This email is already in use."))
         return value
 
     def validate_username(self, value):
-        """Ensure username is unique and within 3 to 50 characters."""
+
         min_length = 3
         max_length = 50
         if not (min_length <= len(value) <= max_length):
@@ -55,7 +59,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        """Ensure password meets the required complexity and length."""
+
         min_length = 8
         max_length = 22
         if not (min_length <= len(value) <= max_length):
@@ -75,21 +79,19 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             is_staff=validated_data.get('is_staff', False),  
             is_active=validated_data.get('is_active', True),  
         )
-        
         user.set_password(validated_data['password'])
         user.save()
         return user
-
+        
 class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True, max_length=150)
-    password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    username = serializers.CharField(required=True, min_length=3, max_length=50)
+    password = serializers.CharField(required=True, write_only=True,  min_length=8, max_length=22, style={'input_type': 'password'})
 
     class Meta:
         model = User
         fields = ['username', 'password']
 
     def validate(self, attrs):
-        """Validate the username and password and authenticate the user."""
         username = attrs.get('username')
         password = attrs.get('password')
 
@@ -105,31 +107,38 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("This user account is inactive.")
 
         return {'user': user}
-    
-    def save(self):
-        user = self.validated_data['user']
-        return user
 
 class UserLogoutSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
-
+    
     def validate_username(self, value):
-        user = get_object_or_404(User, username=value)
-        return user
-
-    def save(self):
-        user = self.validated_data['username']
-        return user 
+        user = User.objects.filter(username=value).first()
+        
+        if not user:
+            raise serializers.ValidationError("User does not exist.")
+        
+        self.user = user
+        return value
+    
+    def logout_user(self):
+        tokens = OutstandingToken.objects.filter(user=self.user)
+        
+        if not tokens.exists():
+            raise serializers.ValidationError("User is already logged out.")
+        
+        for token in tokens:
+            BlacklistedToken.objects.create(token=token)
+            token.delete() 
 
 class FileListSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
         fields = ['id', 'owner', 'file_name', 'file_size', 'file_type', 'uploaded_at']
-
+ 
 class FileUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        fields = ['file_name', 'file_size', 'file_type']  
+        fields = ['file_name', 'file_size', 'file_type']
 
     def generate_random_string(self, length=5):
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
@@ -143,12 +152,38 @@ class FileUploadSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        request = self.context.get('request')  
-        validated_data['owner'] = request.user  
+        validated_data['owner'] = self.context['request'].user  
         file = validated_data.get('file_name')  
         validated_data['file_size'] = file.size
         validated_data['file_type'] = file.content_type
-        file_upload_instance = File.objects.create(**validated_data)
-        return file_upload_instance
-    
+        return File.objects.create(**validated_data)
 
+class FileDeleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = File
+        fields = [] 
+
+    def validate(self, value):
+        file_instance = self.instance
+        if not file_instance or not file_instance.file_name:
+            raise Http404("File not found or you do not have permission to delete this file.")
+        return value
+
+class FileDownloadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = File
+        fields = ['file_name', 'file_type']
+
+    def validate_and_get_file_path(self, pk, user):
+        try:
+            file_instance = File.objects.get(pk=pk, owner=user)
+        except File.DoesNotExist:
+            raise Http404("File not found")
+        
+        file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', file_instance.file_name.name.split('/')[-1])
+        if not os.path.exists(file_path):
+            raise Http404("File not found")
+        
+        return file_path, file_instance.file_type
+
+        

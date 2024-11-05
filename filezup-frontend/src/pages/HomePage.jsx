@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { AiOutlineLogout } from 'react-icons/ai';
 import { useDispatch } from 'react-redux';
 import { removeUser } from '../features/authentication/authenticationSlices.js';
-import axios from 'axios';
+import axiosInstance from '../utils/AxiosInstance.js';
 import { useNavigate } from 'react-router-dom';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
 import UploadedFileList from '../components/UploadedFileList.jsx';
 import FilePicker from '../components/FilePicker.jsx';
 import { toast } from 'react-hot-toast';
+import setupInterceptors from '../utils/AxiosInterceptor.js';
 
 const HomePage = () => {
     const dispatch = useDispatch();
@@ -19,14 +20,12 @@ const HomePage = () => {
 
     const handleLogout = async () => {
         try {
-            const response = await axios.post(
-                `http://127.0.0.1:8000/api/logout/${userData.username}/`,
-                {},
+            const response = await axiosInstance.post(
+                `logout/${userData.username}/`,
                 {
                     headers: {
-                        Authorization: `Bearer ${userData.token}`,
+                        'Content-Type': 'application/json',
                     },
-                    withCredentials: true,
                 }
             );
             if (response.status === 200) {
@@ -52,19 +51,18 @@ const HomePage = () => {
             formData.append('file', file);
         });
         try {
-            const response = await axios.post(
-                'http://127.0.0.1:8000/api/file/upload/',
+            const response = await axiosInstance.post(
+                'file/upload/',
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${userData.token}`,
                         'Content-Type': 'multipart/form-data',
                     },
-                    withCredentials: true,
                 }
             );
+
             if (response.status === 201) {
-                fetchFiles(userData.token);
+                fetchFiles(userData.access_token);
                 setUploadingFiles([]);
                 toast.success('Upload successful');
             }
@@ -75,15 +73,12 @@ const HomePage = () => {
 
     const fetchFiles = async (token) => {
         try {
-            const response = await axios.get(
-                'http://127.0.0.1:8000/api/file/',
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    withCredentials: true,
-                }
-            );
+            const response = await axiosInstance.get('file/', {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
             setFiles(response.data);
         } catch (error) {
             toast.error('Failed to fetch files:', error);
@@ -92,18 +87,19 @@ const HomePage = () => {
 
     const handleDelete = async (fileId) => {
         try {
-            const response = await axios.delete(
-                `http://127.0.0.1:8000/api/file/delete/${fileId}/`,
+            const response = await axiosInstance.delete(
+                `file/delete/${fileId}/`,
                 {
                     headers: {
-                        Authorization: `Bearer ${userData.token}`,
+                        'Content-Type': 'application/json',
                     },
-                    withCredentials: true,
                 }
             );
-            if (response.status === 204) {
-                fetchFiles(userData.token);
+            if (response.status === 200) {
+                fetchFiles(userData.access_token);
                 toast.success('Deletion successful');
+            } else if (response.status === 204) {
+                toast.success('File not found');
             }
         } catch (error) {
             toast.error('File deletion failed:', error);
@@ -112,14 +108,13 @@ const HomePage = () => {
 
     const handleDownload = async (fileId) => {
         try {
-            const response = await axios.get(
-                `http://127.0.0.1:8000/api/file/download/${fileId}/`,
+            const response = await axiosInstance.get(
+                `file/download/${fileId}/`,
                 {
                     headers: {
-                        Authorization: `Bearer ${userData.token}`,
+                        'Content-Type': 'application/json',
                     },
                     responseType: 'blob',
-                    withCredentials: true,
                 }
             );
 
@@ -130,7 +125,7 @@ const HomePage = () => {
                 );
                 downloadFile(response.data, originalFilename);
                 toast.success('Downloaded file');
-                fetchFiles(userData.token);
+                fetchFiles(userData.access_token);
             }
         } catch (error) {
             toast.error(`File download failed: ${error.message}`);
@@ -162,6 +157,9 @@ const HomePage = () => {
         link.click();
         link.remove();
     };
+    useEffect(() => {
+        setupInterceptors(navigate);
+    }, []);
 
     useEffect(() => {
         const user_details = JSON.parse(
@@ -173,7 +171,7 @@ const HomePage = () => {
             return;
         }
         setUserData(user_details);
-        fetchFiles(user_details.token);
+        fetchFiles(user_details.access_token);
 
         const currentHour = new Date().getHours();
         if (currentHour < 12) {

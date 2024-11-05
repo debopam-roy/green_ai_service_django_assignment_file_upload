@@ -22,8 +22,24 @@ const LoginPage = () => {
         );
 
         if (response.status === 200) {
-            const { user_id, username, fullname, email, token } = response.data;
-            dispatch(addUser({ user_id, username, fullname, email, token }));
+            const {
+                user_id,
+                username,
+                fullname,
+                email,
+                access_token,
+                refresh_token,
+            } = response.data;
+            dispatch(
+                addUser({
+                    user_id,
+                    username,
+                    fullname,
+                    email,
+                    access_token,
+                    refresh_token,
+                })
+            );
             toast.success('Login successful');
             navigate('/');
         } else {
